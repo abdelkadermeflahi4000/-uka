@@ -17,3 +17,37 @@ into a single evolving intelligence system.
 ---
 
 ## 🧩 Core Idea
+
+---
+
+## ⚙️ Stack
+
+- Python
+- PyTorch
+- ROS2
+- Unity / Unreal
+- FastAPI
+
+---
+
+## 🚀 Goal
+
+Create a system where:
+- Robots learn
+- AI improves
+- Simulations accelerate evolution
+- Knowledge is shared globally
+
+---
+
+## ⚠️ Ethics
+
+- Safe AI only
+- No biological experimentation
+- Open collaboration
+
+---
+
+## 📜 License
+
+MIT
