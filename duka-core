@@ -1,12 +1,16 @@
 duka-core/
-├── requirements.txt
-├── config.yaml
-├── src/
+├── monitoring/
 │   ├── __init__.py
-│   ├── environment.py      # بيئة المحاكاة
-│   ├── agent.py           # وكيل التعلم
-│   ├── network.py         # طبقة الشبكة (Virtual Starlink)
-│   ├── trainer.py         # حلقة التدريب
-│   └── utils.py           # أدوات مساعدة
-├── main.py                # نقطة الدخول
-└── README.md
+│   ├── metrics.py              # Prometheus Metrics Collector
+│   ├── tensorboard_logger.py   # ML Metrics Logger
+│   └── health_check.py         # System Health Monitor
+├── docker/
+│   ├── prometheus.yml          # Prometheus Config
+│   ├── grafana/
+│   │   ├── datasources.yml
+│   │   └── dashboards/
+│   │       └── duka_main.json
+│   └── docker-compose.yml
+├── src/
+│   └── pipeline.py             # (محدث مع Metrics)
+└── requirements.txt            # (محدث)
