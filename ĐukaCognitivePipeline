@@ -1,0 +1,31 @@
+# في داخل run_cycle() أو طبقة Policy جديدة
+class RealityPolicyLayer:
+    def __init__(self, clusterer, surrogate, fl_trainer, guardrail, auditor):
+        self.clusterer = clusterer
+        self.surrogate = surrogate
+        self.fl_trainer = fl_trainer
+        self.guardrail = guardrail
+        self.auditor = auditor
+        self.prev_hash = "0x0"
+        
+    async def propose_nudge(self, perception_state, policy_output) -> Dict:
+        # 1. ضغط الوكلاء
+        macros = self.clusterer.compress_agents(perception_state["agents"], perception_state["behaviors"])
+        
+        # 2. محاكاة سريعة بالسروجيت
+        sim_outcome = self.surrogate.predict_step(macros[0].centroid, policy_output["action"])
+        
+        # 3. تحويل إلى Nudge آمن
+        nudge = NudgeIntervention(
+            type="routing_incentive",
+            magnitude=0.3,
+            target_group="delivery_fleet",
+            expected_effect={"congestion_reduction": 0.12},
+            reversibility_score=0.95
+        )
+        
+        # 4. تحقق دستوري + تسجيل تدقيق
+        approved, reason = self.guardrail.evaluate(nudge)
+        self.prev_hash = self.auditor.sign_and_log(nudge.__dict__, reason, self.prev_hash)
+        
+        return {"approved": approved, "nudge": nudge, "audit_hash": self.prev_hash, "reason": reason}
