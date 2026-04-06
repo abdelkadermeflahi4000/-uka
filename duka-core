@@ -1,0 +1,12 @@
+duka-core/
+├── requirements.txt
+├── config.yaml
+├── src/
+│   ├── __init__.py
+│   ├── environment.py      # بيئة المحاكاة
+│   ├── agent.py           # وكيل التعلم
+│   ├── network.py         # طبقة الشبكة (Virtual Starlink)
+│   ├── trainer.py         # حلقة التدريب
+│   └── utils.py           # أدوات مساعدة
+├── main.py                # نقطة الدخول
+└── README.md
