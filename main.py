@@ -1,17 +1,27 @@
 from src.environment import FrequencyGridWorld
-from src.agent import DukaAgent  # سنحدثه بعدين
+from src.agent import LaserGeneticAgent
 
-env = FrequencyGridWorld(grid_size=12, render_mode="human")
+env = FrequencyGridWorld(grid_size=12)
 
+agent = LaserGeneticAgent(env)
+
+# تدريب
+agent.learn(total_timesteps=80000)
+
+# اختبار
 obs, _ = env.reset()
-
-# إطلاق أشعة ليزر صامتة
-env.add_laser_beam(start=(3,3), direction=(1,1), frequency=0.95, is_silent=True)
-env.add_laser_beam(start=(8,4), direction=(-1,0.5), frequency=0.88, is_silent=True)
-
-for _ in range(50):
-    action = env.action_space.sample()   # أو action من agent
-    obs, reward, term, trunc, info = env.step(action)
+for step in range(200):
+    action = agent.predict(obs, deterministic=True)
+    obs, reward, terminated, truncated, info = env.step(action)
+    
+    # الـ Agent يقرر إطلاق ليزر بنفسه
+    if step % 8 == 0 and np.random.rand() < 0.7:
+        laser_params = agent.get_laser_action(obs)
+        env.add_laser_beam(**laser_params)
+    
     env.render()
-    if term or trunc:
+    print(f"Reality Match: {info['reality_match']:.4f} | Lasers: {info['lasers_active']}")
+    
+    if terminated or truncated:
+        print("🎯 الحلقة انتهت - Reality Match:", info['reality_match'])
         break
