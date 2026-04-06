@@ -1,138 +1,125 @@
-"""
-🤖 Đuka Agent - وحدة التعلم المعزز
-يدعم PPO مع إمكانية التبادل المعرفي الموزع
-"""
-
-from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.vec_env import DummyVecEnv
-import torch
 import numpy as np
-from typing import Optional, List
-import os
+import torch as th
+from stable_baselines3 import PPO
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from typing import Dict, Tuple
+import gymnasium as gym
 
-
-class KnowledgeSharingCallback(BaseCallback):
+class LaserGeneticAgent:
     """
-    🔄 Callback لتبادل المعرفة بين الـ Nodes
-    يحاكي Virtual Starlink Layer
-    """
-    
-    def __init__(self, node_id: str, peers: List[str], sync_interval: int, verbose: int = 0):
-        super().__init__(verbose)
-        self.node_id = node_id
-        self.peers = peers
-        self.sync_interval = sync_interval
-        self.knowledge_buffer = []
-        
-    def _on_step(self) -> bool:
-        # جمع الخبرات المحلية
-        if self.locals.get("infos"):
-            for info in self.locals["infos"]:
-                if "knowledge" in info:
-                    self.knowledge_buffer.append(info["knowledge"])
-        
-        # مزامنة دورية مع الـ Peers (محاكاة)
-        if self.n_calls % self.sync_interval == 0 and self.peers:
-            self._sync_knowledge()
-        
-        return True
-    
-    def _sync_knowledge(self):
-        """محاكاة تبادل المعرفة مع العقد الأخرى"""
-        if not self.knowledge_buffer:
-            return
-            
-        # 📡 إرسال المعرفة (محاكاة)
-        avg_knowledge = np.mean(self.knowledge_buffer)
-        print(f"🛰️ [{self.node_id}] Sharing knowledge: {avg_knowledge:.2f} → {self.peers}")
-        
-        # 📥 استقبال معرفة من Peers (محاكاة - هنا نضيف ضوضاء إيجابية)
-        received_knowledge = avg_knowledge * np.random.uniform(0.95, 1.05)
-        print(f"📥 [{self.node_id}] Received enhanced knowledge: {received_knowledge:.2f}")
-        
-        # 💡 تطبيق التعلم المستلم (تحسين بسيط في سياسة الوكيل)
-        if hasattr(self.model, "policy") and hasattr(self.model.policy, "parameters"):
-            # ملاحظة: في تطبيق حقيقي، نستخدم Federated Averaging
-            pass
-        
-        self.knowledge_buffer.clear()
-
-
-class DukaAgent:
-    """
-    🧠 وكيل Đuka الرئيسي
+    LaserGeneticAgent - Đuka Protocol Phase 1
+    - يجمع بين Reinforcement Learning (PPO) + Genetic Encoding
+    - يتعلم يبرمج أشعة الليزر والأشعة الصامتة بنفسه
+    - يحاول الوصول إلى Perfect Reality Match (الواقع يبدو طبيعي 100%)
     """
     
-    def __init__(
-        self,
-        env,
-        config: dict,
-        node_id: str = "node_001"
-    ):
-        self.config = config
-        self.node_id = node_id
+    def __init__(self, env: gym.Env, device: str = "auto"):
+        self.env = env
+        self.device = device
         
-        # 🎯 إعداد الـ Environment
-        self.env = DummyVecEnv([lambda: env])
+        # ==================== Genetic Encoding ====================
+        self.genome_size = 64
+        self.genome = np.random.uniform(-1.0, 1.0, self.genome_size)
         
-        # 🧠 إنشاء نموذج PPO
+        # جينات مهمة:
+        # 0-7   : حساسية الترددات
+        # 8-15  : قوة برمجة الزمن
+        # 16-23 : تفضيل الأشعة الصامتة
+        # 24-31 : كفاءة Reality Match
+        # 32-63 : معلمات الـ PPO المعدلة
+        self.genome[0:8] = 0.85      # حساسية عالية للتردد
+        self.genome[8:16] = 0.75     # برمجة زمن قوية
+        self.genome[16:24] = 0.9     # تفضيل الأشعة الصامتة
+        self.genome[24:32] = 0.95    # هدف Reality Match
+        
+        # ==================== PPO Model ====================
+        policy_kwargs = dict(
+            net_arch=[256, 256, 128],
+            activation_fn=th.nn.ReLU,
+            features_extractor_class=CustomFeatureExtractor,
+            features_extractor_kwargs={"genome": self.genome}
+        )
+        
         self.model = PPO(
-            policy=config["agent"]["policy"],
-            env=self.env,
-            learning_rate=config["agent"]["learning_rate"],
-            gamma=config["agent"]["gamma"],
-            n_steps=config["agent"]["n_steps"],
-            batch_size=config["agent"]["batch_size"],
-            n_epochs=config["agent"]["n_epochs"],
+            "MlpPolicy",
+            env,
             verbose=1,
-            tensorboard_log=config["training"]["log_dir"]
+            device=self.device,
+            learning_rate=3e-4,
+            n_steps=2048,
+            batch_size=512,
+            gamma=0.99,
+            tensorboard_log="./tensorboard/đuka_laser/",
+            policy_kwargs=policy_kwargs
         )
-        
-        # 🔄 Callback لتبادل المعرفة
-        self.knowledge_callback = KnowledgeSharingCallback(
-            node_id=node_id,
-            peers=config["network"]["peers"],
-            sync_interval=config["network"]["sync_interval"]
-        )
     
-    def train(self, total_timesteps: Optional[int] = None):
-        """🚀 بدء التدريب"""
-        timesteps = total_timesteps or self.config["training"]["total_timesteps"]
+    def get_laser_action(self, obs: np.ndarray) -> Dict:
+        """يقرر إطلاق ليزر جديد حسب الـ genome"""
+        freq_base = np.tanh(self.genome[0:8].mean()) * 0.9 + 0.1
+        is_silent = np.random.rand() < self.genome[16:24].mean()
         
-        print(f"🎯 [{self.node_id}] Starting training for {timesteps} steps...")
+        # اختيار اتجاه ذكي
+        directions = [(1,0), (-1,0), (0,1), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1)]
+        dir_idx = int(np.abs(self.genome[8:16]).argmax() % 8)
         
-        self.model.learn(
-            total_timesteps=timesteps,
-            callback=self.knowledge_callback,
-            progress_bar=True
-        )
+        return {
+            "start": tuple(self.env.agent_pos),
+            "direction": directions[dir_idx],
+            "frequency": float(freq_base + 0.1 * self.genome[24]),
+            "amplitude": 1.0,
+            "is_silent": bool(is_silent),
+            "duration": int(6 + 4 * abs(self.genome[8]))
+        }
+    
+    def learn(self, total_timesteps: int = 50000):
+        """التدريب مع تطور الـ genome"""
+        print("🚀 بدء تدريب LaserGeneticAgent...")
         
-        print(f"✅ [{self.node_id}] Training completed!")
-        return self.model
+        for iteration in range(0, total_timesteps, 10000):
+            self.model.learn(total_timesteps=10000, reset_num_timesteps=False)
+            
+            # Evolution: Mutation + Selection
+            if iteration % 20000 == 0 and iteration > 0:
+                self.evolve_genome()
+                print(f"🧬 Evolution at step {iteration} | Reality Match Goal: {self.genome[24:32].mean():.3f}")
+        
+        self.model.save("models/duka_laser_genetic_agent")
+        print("✅ التدريب انتهى - النموذج محفوظ")
     
-    def save(self, path: Optional[str] = None):
-        """💾 حفظ النموذج"""
-        if path is None:
-            path = f"{self.config['training']['model_dir']}/{self.node_id}_latest"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        self.model.save(path)
-        print(f"💾 Model saved to {path}")
+    def evolve_genome(self):
+        """تطور الجينوم (Mutation + Crossover)"""
+        # Mutation
+        mutation = np.random.normal(0, 0.15, self.genome_size)
+        self.genome += mutation * (1 - abs(self.genome))
+        
+        # Clamp
+        self.genome = np.clip(self.genome, -1.0, 1.0)
+        
+        # Reward good genes (Reality Match)
+        self.genome[24:32] = np.clip(self.genome[24:32] + 0.08, 0.7, 1.0)
     
-    def load(self, path: str):
-        """📂 تحميل نموذج محفوظ"""
-        self.model = PPO.load(path, env=self.env)
-        print(f"📂 Model loaded from {path}")
-    
-    def predict(self, observation, deterministic: bool = True):
-        """🔮 التنبؤ بالإجراء التالي"""
-        action, _ = self.model.predict(observation, deterministic=deterministic)
+    def predict(self, obs: np.ndarray, deterministic: bool = False):
+        action, _ = self.model.predict(obs, deterministic=deterministic)
         return action
     
-    def get_knowledge_summary(self) -> dict:
-        """📊 ملخص المعرفة المكتسبة"""
-        return {
-            "node_id": self.node_id,
-            "model_params": sum(p.numel() for p in self.model.policy.parameters()),
-            "training_steps": self.model.num_timesteps,
-        }
+    def save(self, path: str):
+        self.model.save(path)
+        np.save(f"{path}_genome.npy", self.genome)
+    
+    def load(self, path: str):
+        self.model = PPO.load(path, env=self.env)
+        self.genome = np.load(f"{path}_genome.npy")
+
+
+# ==================== Feature Extractor (يدمج الـ genome) ====================
+class CustomFeatureExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.spaces.Box, genome: np.ndarray):
+        super().__init__(observation_space, features_dim=256)
+        self.genome = th.tensor(genome, dtype=th.float32)
+    
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        # Flatten grid + inject genome
+        flat = observations.view(observations.shape[0], -1)
+        genome_expanded = self.genome.unsqueeze(0).expand(flat.shape[0], -1)
+        combined = th.cat([flat, genome_expanded], dim=1)
+        return combined
