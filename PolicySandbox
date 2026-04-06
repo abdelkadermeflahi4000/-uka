@@ -1,0 +1,63 @@
+"""
+🏛️ Đuka PolicySandbox - جسر المحاكاة ↔ التنفيذ الآمن
+"""
+from typing import Dict, List, Callable, Tuple
+from dataclasses import dataclass
+import asyncio
+import logging
+
+logger = logging.getLogger("duka.policy")
+
+@dataclass
+class PolicyIntervention:
+    target: str          # "traffic_signals", "energy_grid", "economic_incentive"
+    parameters: Dict     # { "cycle_sec": 45, "subsidy_rate": 0.12 }
+    expected_outcome: Dict
+    confidence: float
+    causal_risk: float
+
+@dataclass
+class RealityActuationResult:
+    success: bool
+    actual_outcome: Dict
+    deviation_from_sim: float
+    audit_id: str
+
+class PolicySandbox:
+    def __init__(self, simulation_engine, reality_firewall, actuation_apis: Dict[str, Callable]):
+        self.sim = simulation_engine
+        self.firewall = reality_firewall
+        self.actuators = actuation_apis  # {"traffic": set_signals, "energy": adjust_grid, ...}
+    
+    async def propose_and_validate(self, intervention: PolicyIntervention) -> Tuple[bool, str]:
+        # 1. تشغيل سيناريو المحاكاة
+        sim_result = await self.sim.run_scenario(intervention)
+        intervention.confidence = sim_result.confidence
+        intervention.causal_risk = sim_result.risk_score
+        
+        # 2. بوابة الأمان والحوكمة
+        approved, reason = await self.firewall.validate_intervention(intervention.__dict__)
+        return approved, reason
+    
+    async def execute_if_approved(self, intervention: PolicyIntervention) -> RealityActuationResult:
+        approved, reason = await self.propose_and_validate(intervention)
+        if not approved:
+            logger.warning(f"🚫 Intervention rejected: {reason}")
+            return RealityActuationResult(False, {}, 0.0, "REJECTED")
+        
+        # 3. التنفيذ عبر واجهات البنية التحتية
+        actuator = self.actuators.get(intervention.target)
+        if not actuator:
+            raise ValueError(f"No actuator for target: {intervention.target}")
+        
+        try:
+            outcome = await actuator(intervention.parameters)
+            deviation = self._compute_deviation(intervention.expected_outcome, outcome)
+            return RealityActuationResult(True, outcome, deviation, audit_id=f"act_{id(intervention)}")
+        except Exception as e:
+            logger.error(f"❌ Actuation failed: {e}")
+            return RealityActuationResult(False, {"error": str(e)}, 1.0, f"FAILED_{id(intervention)}")
+    
+    def _compute_deviation(self, expected: Dict, actual: Dict) -> float:
+        # قياس الفجوة بين المحاكاة والواقع (للتعلم المستمر)
+        return sum(abs(expected.get(k,0) - actual.get(k,0)) for k in set(expected)|set(actual)) / max(len(expected),1)
