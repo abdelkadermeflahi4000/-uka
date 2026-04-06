@@ -1,0 +1,148 @@
+"""🌌 FrequencyGridWorld - Phase 1
+بيئة ترددية ديناميكية: كل خلية تحمل (تردد، طور، سعة)
+الوكيل يتفاعل مع حقل موجي ينتشر ويتغير مع الزمن
+"""
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+from typing import Dict, Optional, Tuple
+import logging
+
+logger = logging.getLogger("duka.freq_world")
+
+class FrequencyGridWorld(gym.Env):
+    metadata = {"render_modes": ["human"], "render_fps": 5}
+    
+    def __init__(
+        self,
+        grid_size: int = 10,
+        max_steps: int = 200,
+        n_resonators: int = 5,
+        n_dissonance: int = 5,
+        render_mode: Optional[str] = None,
+    ):
+        super().__init__()
+        self.grid_size = grid_size
+        self.max_steps = max_steps
+        self.render_mode = render_mode
+        
+        # 5 أفعال: [stay, up, down, left, right]
+        self.action_space = spaces.Discrete(5)
+        
+        # ملاحظة مسطحة لـ MlpPolicy (3 قنوات: freq, sin_phase, amp)
+        self.observation_space = spaces.Box(
+            low=-1.0, high=1.0,
+            shape=(grid_size * grid_size * 3,),
+            dtype=np.float32
+        )
+        
+        # حقول التردد
+        self.freq_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.phase_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.amp_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.resonators = np.empty((0, 2), dtype=int)
+        self.dissonance = np.empty((0, 2), dtype=int)
+        self.agent_pos = np.array([0, 0])
+        self.current_step = 0
+        self.knowledge_collected = 0
+        
+        self._reset_environment()
+    
+    def _reset_environment(self):
+        self.agent_pos = np.random.randint(0, self.grid_size, 2)
+        self.freq_field = np.random.uniform(-0.5, 0.5, (self.grid_size, self.grid_size))
+        self.phase_field = np.random.uniform(-np.pi, np.pi, (self.grid_size, self.grid_size))
+        self.amp_field = np.random.uniform(0.3, 0.8, (self.grid_size, self.grid_size))
+        
+        self.resonators = self._generate_positions(5)
+        for r in self.resonators:
+            self.freq_field[r[0], r[1]] = 0.9
+            self.amp_field[r[0], r[1]] = 1.0
+            
+        self.dissonance = self._generate_positions(5)
+        for d in self.dissonance:
+            self.freq_field[d[0], d[1]] = -0.8
+            self.amp_field[d[0], d[1]] = 0.5
+            
+        self.current_step = 0
+        self.knowledge_collected = 0
+    
+    def _generate_positions(self, n: int) -> np.ndarray:
+        positions = []
+        while len(positions) < n:
+            pos = np.random.randint(0, self.grid_size, 2)
+            if not any(np.array_equal(pos, p) for p in positions):
+                positions.append(pos)
+        return np.array(positions, dtype=int)
+    
+    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> Tuple[np.ndarray, Dict]:
+        super().reset(seed=seed)
+        self._reset_environment()
+        return self._get_observation(), {"knowledge": self.knowledge_collected}
+    
+    def _get_observation(self) -> np.ndarray:
+        obs = np.stack([
+            self.freq_field,
+            np.sin(self.phase_field),
+            self.amp_field
+        ], axis=-1)
+        return obs.flatten()
+    
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict]:
+        self.current_step += 1
+        old_pos = self.agent_pos.copy()
+        
+        moves = [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]
+        self.agent_pos = np.clip(self.agent_pos + moves[action], 0, self.grid_size - 1)
+        
+        # ديناميكية الحقل (انتشار موجي بسيط)
+        self._propagate_field()
+        
+        # حساب المكافأة بناءً على الرنين المحلي
+        freq = self.freq_field[self.agent_pos[0], self.agent_pos[1]]
+        amp = self.amp_field[self.agent_pos[0], self.agent_pos[1]]
+        reward = freq * amp * 2.0  # resonance score
+        
+        # جمع Resonators (معرفة ترددية)
+        for i, r in enumerate(self.resonators):
+            if np.array_equal(self.agent_pos, r):
+                reward += 5.0
+                self.knowledge_collected += 1
+                self.amp_field[r[0], r[1]] = 0.0  # "استهلاك" العقدة
+                break
+                
+        # عقوبة Dissonance (تلوث/تشويش)
+        for d in self.dissonance:
+            if np.array_equal(self.agent_pos, d):
+                reward -= 3.0
+                break
+                
+        terminated = self.knowledge_collected >= len(self.resonators)
+        truncated = self.current_step >= self.max_steps
+        
+        info = {
+            "knowledge": self.knowledge_collected,
+            "current_freq": float(freq),
+            "resonance": float(freq * amp),
+            "phase_coherence": float(np.cos(self.phase_field[self.agent_pos[0], self.agent_pos[1]]))
+        }
+        
+        return self._get_observation(), float(reward), terminated, truncated, info
+    
+    def _propagate_field(self):
+        """انتشار ترددي بسيط (Laplacian diffusion) يحاكي انتقال الطاقة"""
+        pad = np.pad(self.freq_field, 1, mode='edge')
+        lap = (pad[1:-1, 2:] + pad[1:-1, :-2] + pad[2:, 1:-1] + pad[:-2, 1:-1] - 4 * self.freq_field)
+        self.freq_field = np.clip(self.freq_field + 0.12 * lap, -1.0, 1.0)
+        self.phase_field = np.remainder(self.phase_field + 0.05, 2 * np.pi)
+    
+    def render(self):
+        if self.render_mode == "human":
+            grid = np.full((self.grid_size, self.grid_size), "·")
+            for r in self.resonators: grid[r[0], r[1]] = "★"
+            for d in self.dissonance: grid[d[0], d[1]] = "✖"
+            grid[self.agent_pos[0], self.agent_pos[1]] = "●"
+            print(f"\n⚡ Step {self.current_step} | Knowledge: {self.knowledge_collected}")
+            print("   " + " ".join(str(i) for i in range(self.grid_size)))
+            for i, row in enumerate(grid):
+                print(f"{i:2d} " + " ".join(row))
