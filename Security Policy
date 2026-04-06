@@ -1,0 +1,64 @@
+# Security Policy
+
+## Supported Versions
+Only the latest commit on the `main` branch is currently supported.
+
+## Reporting a Vulnerability
+We take security and privacy very seriously, especially in a project involving robotics, federated learning, and real-world deployment.
+
+**Please do NOT report security issues publicly** (no GitHub Issues or Discussions).
+
+### How to Report
+Send a detailed email to:  
+**security@duka-protocol.org** (أو استخدم الإيميل الشخصي للميينتينر حالياً: abdelkadermeflahi4000@gmail.com — سنحدثه لاحقاً)
+
+أو استخدم **GitHub Private Vulnerability Reporting** إذا أصبح متاحاً.
+
+### What to Include in Your Report
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact (e.g., data leakage, robot control takeover, privacy breach in federated learning)
+- Affected components (Reality Firewall, DP-FedAvg, ROS2 Bridge, PolicySandbox, etc.)
+- Suggested fix if you have one
+- Your contact information (optional)
+
+### Response Timeline
+- **Acknowledgment**: Within 48 hours
+- **Initial Assessment**: Within 5 business days
+- **Fix Release Target**:
+  - Critical (remote code execution, privacy breach): 7-14 days
+  - High: 30 days
+  - Medium/Low: 60-90 days
+
+We will credit you (unless you prefer to stay anonymous) in the release notes or SECURITY.md when the issue is fixed.
+
+## Security Features & Commitments (Privacy & Safety by Design)
+- **Reality Firewall**: Isolates untrusted code and knowledge updates using sandboxing.
+- **ConstitutionalGuardrail & PolicySandbox**: Prevents harmful or unethical behaviors.
+- **DP-FedAvg**: Differential Privacy in federated learning to protect individual node data.
+- **Zero-Trust Architecture**: Every node must authenticate and prove integrity.
+- **Audit Trail**: Signed provenance and Merkle trees for all shared knowledge.
+- **No Biological Experimentation**: Strictly prohibited as per project ethics.
+
+We commit to:
+- Privacy by Design (data minimization, encryption in transit and at rest).
+- Regular dependency scanning (Dependabot + secret scanning).
+- Code signing for releases (future).
+- Avoidance of prompt injection and adversarial attacks on AI components.
+
+## Disclosure Policy
+We follow **Coordinated Vulnerability Disclosure**. We prefer to fix issues privately before public disclosure.
+
+## Scope
+This policy covers the Đuka core protocol, including but not limited to:
+- protocol.py, ros2_bridge.py, duka-realtime, mesh.py
+- HierarchicalWorldModel, NeuralSurrogate
+- Ethics, Guardrails, and Firewall components
+- Any code handling robot control, simulation, or federated updates
+
+Out-of-scope: Third-party dependencies (we still patch them quickly), and issues in custom enterprise integrations.
+
+## Thank You
+Thank you for helping keep Đuka secure and private. Your contributions to security make the project stronger and more suitable for enterprise and robotics deployment (including potential Tesla Optimus + Starlink integrations).
+
+Last updated: April 2026
