@@ -1,0 +1,47 @@
+# 📊 Prometheus Configuration for Đuka
+
+global:
+  scrape_interval: 5s          # جمع المقاييس كل 5 ثواني
+  evaluation_interval: 15s     # تقييم القواعد كل 15 ثانية
+  external_labels:
+    monitor: 'duka-monitor'
+    environment: 'development'
+
+# Alertmanager configuration (اختياري)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files
+rule_files:
+  # - "duka_alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Đuka Node Metrics
+  - job_name: 'duka_node'
+    static_configs:
+      - targets: ['host.docker.internal:8000']  # Metrics server port
+    metrics_path: '/metrics'
+    scrape_interval: 2s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'duka_node_01'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (System metrics)
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  # cAdvisor (Container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
