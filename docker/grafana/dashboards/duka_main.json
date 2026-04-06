@@ -1,0 +1,108 @@
+{
+  "dashboard": {
+    "title": "Đuka Cognitive Pipeline - Live Monitor",
+    "tags": ["duka", "robotics", "ai"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Pipeline Latency (ms)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(duka_pipeline_cycle_latency_seconds_bucket{node_id=\"duka_node_01\"}[5m])) * 1000",
+            "legendFormat": "P95 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(duka_pipeline_cycle_latency_seconds_bucket{node_id=\"duka_node_01\"}[5m])) * 1000",
+            "legendFormat": "P50 Latency"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "System Resources",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "duka_system_cpu_usage_percent{node_id=\"duka_node_01\"}",
+            "legendFormat": "CPU Usage %"
+          },
+          {
+            "expr": "duka_system_memory_usage_bytes{node_id=\"duka_node_01\"} / 1024 / 1024 / 1024",
+            "legendFormat": "Memory Usage GB"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Layer Latencies",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(duka_layer_latency_seconds_sum{node_id=\"duka_node_01\"}[5m]) / rate(duka_layer_latency_seconds_count{node_id=\"duka_node_01\"}[5m])",
+            "legendFormat": "{{layer_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Prediction Confidence",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "avg(duka_prediction_confidence{node_id=\"duka_node_01\"})",
+            "legendFormat": "Confidence"
+          }
+        ],
+        "options": {
+          "min": 0,
+          "max": 1,
+          "thresholds": [
+            {"value": 0, "color": "red"},
+            {"value": 0.7, "color": "yellow"},
+            {"value": 0.9, "color": "green"}
+          ]
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Network Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "duka_knowledge_sync_score{node_id=\"duka_node_01\"}",
+            "legendFormat": "Sync Score"
+          },
+          {
+            "expr": "rate(duka_network_packets_sent_total{node_id=\"duka_node_01\"}[1m])",
+            "legendFormat": "Packets/sec Sent"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Health Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "duka_health_status{node_id=\"duka_node_01\"}",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 16}
+      }
+    ],
+    "refresh": "5s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}
