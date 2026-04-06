@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  duka_noosphere:
+    build: .
+    container_name: duka_noosphere
+    volumes:
+      - ./models:/app/models
+      - ./tensorboard:/app/tensorboard
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=-1  # استخدم CPU أو GPU حسب جهازك
+    ports:
+      - "8080:8080"  # FastAPI لو حبيت تضيفه بعدين
+    command: python main_phase3.py
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+
+  duka_visualizer:
+    build: .
+    container_name: duka_visualizer
+    depends_on:
+      - duka_noosphere
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix  # للـ visualization
+    command: python -c "from src.visualization import NoosphereVisualizer; print('Visualizer ready')"
