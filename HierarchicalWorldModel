@@ -1,0 +1,40 @@
+"""🌐 Hierarchical Abstraction Layer - تجميع الوكلاء ديناميكياً"""
+from typing import Dict, List, Tuple
+import numpy as np
+from scipy.spatial import cKDTree
+from dataclasses import dataclass
+
+@dataclass
+class MacroState:
+    centroid: np.ndarray
+    population: int
+    avg_behavior: Dict
+    variance: float
+
+class HierarchicalClusterer:
+    def __init__(self, max_macro_nodes: int = 50, radius_threshold: float = 0.15):
+        self.max_k = max_macro_nodes
+        self.radius = radius_threshold
+        
+    def compress_agents(self, agent_states: np.ndarray, behaviors: List[Dict]) -> List[MacroState]:
+        """تجميع O(N) إلى O(K) باستخدام KNN + كثافة مكانية"""
+        tree = cKDTree(agent_states)
+        macros = []
+        visited = set()
+        
+        for i, state in enumerate(agent_states):
+            if i in visited: continue
+            neighbors = tree.query_ball_point(state, self.radius)
+            if not neighbors: continue
+            
+            visited.update(neighbors)
+            centroids = agent_states[neighbors]
+            macro = MacroState(
+                centroid=np.mean(centroids, axis=0),
+                population=len(neighbors),
+                avg_behavior={k: np.mean([b.get(k,0) for b in [behaviors[n] for n in neighbors]]) for k in behaviors[0]},
+                variance=np.var(centroids[:,0])  # تبسيط: تباين البعد الأول
+            )
+            macros.append(macro)
+            if len(macros) >= self.max_k: break
+        return macros
