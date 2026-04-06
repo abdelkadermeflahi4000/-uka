@@ -1,0 +1,231 @@
+"""🌌 LaserFrequencyGridWorld - Phase 1.2
+بيئة ترددية + أشعة ليزر موجهة + حقل زمني قابل للبرمجة + قناع إدراكي (Stealth)
+"""
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+from typing import Dict, Optional, Tuple, List
+import logging
+
+logger = logging.getLogger("duka.laser_world")
+
+class LaserFrequencyGridWorld(gym.Env):
+    metadata = {"render_modes": ["human"], "render_fps": 5}
+    
+    def __init__(
+        self,
+        grid_size: int = 10,
+        max_steps: int = 200,
+        n_resonators: int = 5,
+        n_dissonance: int = 5,
+        max_beams: int = 8,
+        render_mode: Optional[str] = None,
+    ):
+        super().__init__()
+        self.grid_size = grid_size
+        self.max_steps = max_steps
+        self.max_beams = max_beams
+        self.render_mode = render_mode
+        
+        # أفعال: [stay, up, down, left, right, emit_laser, modulate_freq, cloak]
+        self.action_space = spaces.Discrete(8)
+        
+        # ملاحظة مسطحة: [freq, sin_phase, amp, time_dilation]
+        self.observation_space = spaces.Box(
+            low=-1.0, high=2.0,
+            shape=(grid_size * grid_size * 4,),
+            dtype=np.float32
+        )
+        
+        # حقول الحالة
+        self.freq_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.phase_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.amp_field = np.zeros((grid_size, grid_size), dtype=np.float32)
+        self.time_field = np.ones((grid_size, grid_size), dtype=np.float32)
+        self.laser_beams: List[Dict] = []
+        
+        # نقاط الهدف/التشويش
+        self.resonators = np.empty((0, 2), dtype=int)
+        self.dissonance = np.empty((0, 2), dtype=int)
+        self.agent_pos = np.array([0, 0], dtype=int)
+        self.current_step = 0
+        self.knowledge_collected = 0
+        
+        self._reset_environment()
+    
+    def _reset_environment(self):
+        self.agent_pos = np.random.randint(0, self.grid_size, 2)
+        self.freq_field = np.random.uniform(-0.4, 0.4, (self.grid_size, self.grid_size))
+        self.phase_field = np.random.uniform(-np.pi, np.pi, (self.grid_size, self.grid_size))
+        self.amp_field = np.random.uniform(0.3, 0.7, (self.grid_size, self.grid_size))
+        self.time_field = np.ones((self.grid_size, self.grid_size), dtype=np.float32)
+        self.laser_beams.clear()
+        
+        self.resonators = self._generate_positions(5)
+        for r in self.resonators:
+            self.freq_field[r[0], r[1]] = 0.85
+            self.amp_field[r[0], r[1]] = 0.95
+            
+        self.dissonance = self._generate_positions(5)
+        for d in self.dissonance:
+            self.freq_field[d[0], d[1]] = -0.75
+            self.amp_field[d[0], d[1]] = 0.5
+            
+        self.current_step = 0
+        self.knowledge_collected = 0
+    
+    def _generate_positions(self, n: int) -> np.ndarray:
+        positions = []
+        while len(positions) < n:
+            pos = np.random.randint(0, self.grid_size, 2)
+            if not any(np.array_equal(pos, p) for p in positions):
+                positions.append(pos)
+        return np.array(positions, dtype=int)
+    
+    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> Tuple[np.ndarray, Dict]:
+        super().reset(seed=seed)
+        self._reset_environment()
+        return self._get_observation(), {"knowledge": self.knowledge_collected}
+    
+    # ─────────────────────────────────────────────────────────────
+    # 🔦 طبقة الليزر والأشعة الصامتة
+    # ─────────────────────────────────────────────────────────────
+    
+    def add_laser_beam(self, origin: Tuple[int, int], direction: Tuple[int, int],
+                      frequency: float, amplitude: float = 1.0, is_silent: bool = True):
+        """إضافة شعاع ليزر / شعاع صامت موجه"""
+        if len(self.laser_beams) >= self.max_beams:
+            self.laser_beams.pop(0)
+            
+        dir_vec = np.array(direction, dtype=float)
+        norm = np.linalg.norm(dir_vec)
+        if norm < 1e-6: return
+        
+        self.laser_beams.append({
+            "origin": np.array(origin),
+            "direction": dir_vec / norm,
+            "frequency": np.clip(frequency, -1.0, 1.0),
+            "amplitude": np.clip(amplitude, 0.0, 1.0),
+            "silent": is_silent,
+            "width": 0.8  # عرض الشعاع (sigma)
+        })
+    
+    def _propagate_beams(self):
+        """تأثير الأشعة على الحقول (Vectorized)"""
+        y, x = np.ogrid[0:self.grid_size, 0:self.grid_size]
+        grid_coords = np.stack([x.flatten(), y.flatten()], axis=-1)
+        
+        for beam in self.laser_beams:
+            # مسافة كل خلية من خط الشعاع
+            origin = beam["origin"]
+            dir_vec = beam["direction"]
+            
+            vec_to_cells = grid_coords - origin
+            proj = np.dot(vec_to_cells, dir_vec)
+            proj = np.clip(proj, 0, self.grid_size * 1.5)
+            closest_point = origin + proj[:, None] * dir_vec[None, :]
+            dist = np.linalg.norm(grid_coords - closest_point, axis=1)
+            
+            # توزيع غاوسي للشعاع
+            influence = beam["amplitude"] * np.exp(-(dist**2) / (2 * beam["width"]**2))
+            influence = influence.reshape(self.grid_size, self.grid_size)
+            
+            # برمجة التردد والسعة
+            self.freq_field = np.clip(self.freq_field + beam["frequency"] * influence * 0.3, -1.0, 1.0)
+            self.amp_field = np.clip(self.amp_field + influence * 0.2, 0.0, 1.0)
+            
+            # برمجة الزمن (Time Dilation Field)
+            time_shift = np.abs(beam["frequency"]) * influence * 0.15
+            self.time_field = np.clip(self.time_field + time_shift - 0.05, 0.5, 2.0)
+    
+    # ─────────────────────────────────────────────────────────────
+    # 👁️ القناع الإدراكي (Stealth & Perfect Reality)
+    # ─────────────────────────────────────────────────────────────
+    
+    def _get_observation(self, perception_mask: Optional[np.ndarray] = None) -> np.ndarray:
+        """إرجاع ملاحظة مفلترة حسب حساسية الوكيل (الجينوم)"""
+        obs = np.stack([self.freq_field, np.sin(self.phase_field), self.amp_field, self.time_field], axis=-1)
+        
+        if perception_mask is not None:
+            # إخفاء الأشعة الصامتة إذا لم يمتلك الوكيل الحساسية الجينية
+            obs[:, :, 0] *= perception_mask
+            obs[:, :, 2] *= perception_mask
+            
+        return obs.flatten()
+    
+    # ─────────────────────────────────────────────────────────────
+    # 🔄 دورة الخطوة الرئيسية
+    # ─────────────────────────────────────────────────────────────
+    
+    def step(self, action: int, perception_mask: np.ndarray = np.ones((self.grid_size, self.grid_size))) -> Tuple[np.ndarray, float, bool, bool, Dict]:
+        self.current_step += 1
+        old_pos = self.agent_pos.copy()
+        
+        moves = [(0,0), (-1,0), (1,0), (0,-1), (0,1)]
+        self.agent_pos = np.clip(self.agent_pos + moves[min(action, 4)], 0, self.grid_size-1)
+        
+        # تأثيرات خاصة بالوكيل
+        if action == 5:  # emit_laser
+            self.add_laser_beam(tuple(self.agent_pos), (1, 0), 0.8, 0.9, is_silent=True)
+        elif action == 6:  # modulate_freq
+            self.freq_field = np.clip(self.freq_field + 0.05, -1.0, 1.0)
+        elif action == 7:  # cloak (stealth activation)
+            pass  # يُفعّل في _get_observation عبر genome
+            
+        # انتشار الأشعة والزمن
+        self._propagate_beams()
+        self.phase_field = np.remainder(self.phase_field + 0.04 * self.time_field, 2*np.pi)
+        
+        # حساب المكافأة
+        x, y = self.agent_pos
+        freq = self.freq_field[x, y]
+        amp = self.amp_field[x, y]
+        time_rate = self.time_field[x, y]
+        
+        resonance = freq * amp
+        reward = resonance * 2.0 * time_rate  # الزمن يضاعف أو يقلل التأثير
+        
+        # جمع المعرفة (Resonators)
+        for r in self.resonators:
+            if np.array_equal(self.agent_pos, r):
+                reward += 4.0
+                self.knowledge_collected += 1
+                self.freq_field[r[0], r[1]] = 0.0
+                
+        # Dissonance
+        for d in self.dissonance:
+            if np.array_equal(self.agent_pos, d):
+                reward -= 2.5
+                
+        # مكافأة "Perfect Reality Match" (تماسك كوني)
+        coherence = np.mean(np.cos(self.phase_field))
+        stealth_bonus = 0.0
+        for beam in self.laser_beams:
+            if beam["silent"] and abs(beam["frequency"]) > 0.85:
+                stealth_bonus += 0.3  # يحس بالطبيعية رغم التدخل
+                
+        reward += coherence * 0.5 + stealth_bonus * 0.1
+        
+        terminated = self.knowledge_collected >= len(self.resonators)
+        truncated = self.current_step >= self.max_steps
+        
+        info = {
+            "knowledge": self.knowledge_collected,
+            "resonance": float(resonance),
+            "coherence": float(coherence),
+            "time_dilation": float(time_rate),
+            "stealth_active": bool(stealth_bonus > 0)
+        }
+        
+        return self._get_observation(perception_mask), float(reward), terminated, truncated, info
+    
+    def render(self):
+        if self.render_mode == "human":
+            grid = np.full((self.grid_size, self.grid_size), "·")
+            for r in self.resonators: grid[r[0], r[1]] = "★"
+            for d in self.dissonance: grid[d[0], d[1]] = "✖"
+            grid[self.agent_pos[0], self.agent_pos[1]] = "●"
+            print(f"\n⚡⏳ Step {self.current_step} | T-Dilation: {self.time_field[self.agent_pos[0], self.agent_pos[1]]:.2f}x")
+            print("   " + " ".join(str(i) for i in range(self.grid_size)))
+            for i, row in enumerate(grid):
+                print(f"{i:2d} " + " ".join(row))
