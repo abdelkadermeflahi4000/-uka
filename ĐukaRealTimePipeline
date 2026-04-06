@@ -1,0 +1,48 @@
+from src.frequency_matter.frequency_grid_world import FrequencyGridWorld
+from src.frequency_matter.genetic_agent import GeneticAgent
+from src.frequency_matter.programmable_matter import MorphologyField
+from src.frequency_matter.temporal_kernel import TemporalKernel
+from src.frequency_matter.noosphere_layer import NoosphereField
+
+class FrequencyMatterBridge:
+    def __init__(self, pipeline, config):
+        self.pipeline = pipeline
+        self.world = FrequencyGridWorld(grid_size=12, freq_bands=3)
+        self.agent = GeneticAgent(device="cpu")
+        self.matter = MorphologyField(resolution=16)
+        self.time_kernel = TemporalKernel(base_hz=30.0)
+        self.noosphere = NoosphereField(n_agents=50)
+        
+    async def run_frequency_cycle(self):
+        obs, _ = self.world.reset()
+        real_dt = 1/30
+        sim_dt = self.time_kernel.step(real_dt)
+        
+        if not self.time_kernel.should_tick():
+            return {"status": "SKIPPED", "dilation": self.time_kernel.dilation}
+            
+        action = self.agent.act(obs)
+        obs_next, reward, terminated, _, info = self.world.step(action)
+        
+        # تحديث المادة والوعي الجماعي
+        morph_feedback = self.matter.apply_frequency_response(
+            torch.tensor(obs_next["field_amp"]),
+            torch.tensor(obs_next["field_phase"]),
+            np.array(action["morph"])
+        )
+        self.noosphere.update(
+            torch.tensor(obs_next["field_phase"].mean(axis=(1,2))),
+            pollution_influx=0.1,
+            stress_index=0.05
+        )
+        
+        self.agent.update_fitness(reward)
+        
+        return {
+            "status": "EXECUTED",
+            "reward": reward,
+            "coherence": self.noosphere.get_coherence(),
+            "anomaly": self.noosphere.get_anomaly_score(),
+            "time_status": self.time_kernel.get_status(),
+            "morph": morph_feedback
+        }
