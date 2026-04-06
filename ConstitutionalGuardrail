@@ -1,0 +1,41 @@
+"""📜 Constitutional AI Constraints + Nudge Engine"""
+from dataclasses import dataclass
+from typing import Callable, Dict, Tuple
+import hashlib, time, json
+
+@dataclass
+class NudgeIntervention:
+    type: str  # "pricing", "information", "routing", "signal_timing"
+    magnitude: float  # [-1.0, 1.0]
+    target_group: str
+    expected_effect: Dict
+    reversibility_score: float  # [0, 1]
+
+class ConstitutionalGuardrail:
+    def __init__(self, hard_constraints: Dict[str, Callable]):
+        self.constraints = hard_constraints  # {"max_inequality": check_fn, "privacy_floor": check_fn}
+        self.veto_active = True
+        
+    def evaluate(self, nudge: NudgeIntervention) -> Tuple[bool, str]:
+        violations = []
+        for name, check_fn in self.constraints.items():
+            passed, msg = check_fn(nudge)
+            if not passed: violations.append(msg)
+        if violations: return False, f"CONSTRAINT_VIOLATION: {'; '.join(violations)}"
+        return True, "PASS"
+
+class AuditFirstLogger:
+    def __init__(self, log_path: str = "audit/immutable_log.jsonl"):
+        self.path = log_path
+        
+    def sign_and_log(self, proposal: Dict, decision: str, hash_chain: str):
+        entry = {
+            "timestamp": time.time(),
+            "proposal_hash": hashlib.sha256(json.dumps(proposal, sort_keys=True).encode()).hexdigest(),
+            "decision": decision,
+            "prev_hash": hash_chain,
+            "human_reviewer": "pending" if decision == "PENDING" else "auto"
+        }
+        entry["entry_hash"] = hashlib.sha256(json.dumps(entry, sort_keys=True).encode()).hexdigest()
+        with open(self.path, "a") as f: f.write(json.dumps(entry) + "\n")
+        return entry["entry_hash"]
