@@ -1,0 +1,14 @@
+duka-protocol/
+├── src/
+│   ├── core/duka_orchestrator.py
+│   ├── optimus_frequency_bridge.py
+│   ├── isaac_optimus_bridge.py
+│   ├── video_recorder.py
+│   └── ...
+├── app_optimus.py
+├── main_phase4.py
+├── docker-compose.yml
+├── requirements.txt
+├── README.md
+├── MANIFESTO.md
+└── LICENSE
