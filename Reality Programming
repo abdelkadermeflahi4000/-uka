@@ -1,0 +1,23 @@
+┌─────────────────────────────────────────────────────┐
+│  🌍 Reality Interface Layer (Actuation + Sensors)   │
+│  • Smart Infrastructure APIs (Traffic, Energy, IoT) │
+│  • Economic Levers (Subsidies, Pricing, Incentives) │
+│  • Info Channels (Alerts, Routing, Recommendations) │
+├─────────────────────────────────────────────────────┤
+│  🛡️ Reality Firewall (Governance + Safety Gate)     │
+│  • Ethical Constraints (Hard-coded)                 │
+│  • Human-in-the-Loop Veto                           │
+│  • Explainability + Audit Trail                     │
+│  • Rollback & Simulation-First Validation           │
+├─────────────────────────────────────────────────────┤
+│  🧠 Đuka Cognitive Pipeline (Scaled)                │
+│  • Perception → World Model → Prediction → Decision │
+│  • Multi-Agent RL + Causal Inference                │
+│  • Federated Learning across Nodes                  │
+├─────────────────────────────────────────────────────┤
+│  🌐 Hierarchical Simulation Engine                  │
+│  • Micro: Agents (Humans, Vehicles, Devices)        │
+│  • Meso: Districts, Supply Chains, Networks         │
+│  • Macro: City/Regional Economy, Climate, Policy    │
+│  • Surrogate ML Models for Real-Time Speedup        │
+└─────────────────────────────────────────────────────┘
