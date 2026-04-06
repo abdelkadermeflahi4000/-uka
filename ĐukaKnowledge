@@ -1,0 +1,16 @@
+class ĐukaKnowledge:
+    def __init__(self):
+        self.local_memory = VectorStore()      # خبرة محلية
+        self.global_index = FederatedIndex()   # فهرس موزع
+        self.trust_score = 0.0                 # موثوقية العقدة
+        
+    def contribute(self, insight: Insight):
+        """مشاركة معرفة جديدة مع الشبكة بعد التحقق"""
+        if self.validate(insight):
+            self.global_index.sync(insight)
+            
+    def query(self, question: str) -> List[Insight]:
+        """البحث في المعرفة المحلية + العالمية"""
+        local = self.local_memory.search(question)
+        global_ = self.global_index.query(question)
+        return self.rerank(local + global_)
