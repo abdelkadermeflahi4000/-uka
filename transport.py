@@ -1,97 +1,105 @@
 """
-transport.py — طبقة النقل لشبكة Đuka
-✅ FIX: هذا الملف كان مفقوداً كلياً — mesh.py يستورد منه TransportLayer
-
-يدعم حالياً: websocket (قابل التوسعة لـ QUIC, TCP raw, Bluetooth)
+transport.py — طبقة النقل الحقيقية عبر WebSocket
+يدعم: websocket (حقيقي) + simulation (اختبار محلي)
 """
 import asyncio
 import json
 import logging
 from typing import Dict, Callable, Optional
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("đuka.transport")
 
 
 class TransportLayer:
-    """
-    طبقة النقل المجردة — تخفي بروتوكول الاتصال الفعلي عن باقي النظام
-    حالياً: محاكاة داخلية — في الإنتاج: websockets أو aiohttp
-    """
+    SUPPORTED = ['websocket', 'simulation']
 
-    SUPPORTED = ['websocket', 'tcp', 'simulation']
-
-    def __init__(self, transport_type: str = 'simulation'):
+    def __init__(self, transport_type: str = 'websocket'):
         if transport_type not in self.SUPPORTED:
-            raise ValueError(f"Transport '{transport_type}' غير مدعوم. الخيارات: {self.SUPPORTED}")
-
+            raise ValueError(f"Transport '{transport_type}' غير مدعوم.")
         self.transport_type = transport_type
-        self.connections: Dict[str, asyncio.Queue] = {}  # node_id → incoming queue
+        self.connections: Dict[str, any] = {}   # address → websocket object
+        self._sim_queues: Dict[str, asyncio.Queue] = {}
         self.on_receive: Optional[Callable] = None
-        self._connected = False
+        logger.info(f"[Transport] نوع النقل: {transport_type}")
 
-        logger.info(f"[Transport] Initialized with type: {transport_type}")
-
+    # ─────────────────────────────────────────────
+    # الاتصال
+    # ─────────────────────────────────────────────
     async def connect(self, address: str) -> bool:
-        """
-        الاتصال بعنوان عقدة أخرى.
-        في وضع simulation: نجاح دائم.
-        في وضع websocket: يستخدم websockets library.
-        """
         try:
-            if self.transport_type == 'simulation':
-                # محاكاة: نسجل العنوان كـ queue داخلية
-                self.connections[address] = asyncio.Queue()
-                self._connected = True
-                logger.info(f"[Transport/sim] Connected to {address}")
+            if self.transport_type == 'websocket':
+                import websockets
+                ws = await websockets.connect(f"ws://{address}", ping_interval=20)
+                self.connections[address] = ws
+                logger.info(f"[Transport/ws] ✅ اتصال بـ {address}")
+                # مستمع في الخلفية
+                asyncio.create_task(self._ws_listener(address, ws))
                 return True
 
-            elif self.transport_type == 'websocket':
-                # في الإنتاج:
-                # import websockets
-                # self._ws = await websockets.connect(f"ws://{address}")
-                logger.warning("[Transport/ws] WebSocket غير مفعّل — تحتاج: pip install websockets")
-                return False
+            elif self.transport_type == 'simulation':
+                self._sim_queues[address] = asyncio.Queue()
+                self.connections[address] = address
+                logger.info(f"[Transport/sim] ✅ محاكاة اتصال بـ {address}")
+                return True
 
         except Exception as e:
-            logger.error(f"[Transport] Connection failed to {address}: {e}")
+            logger.error(f"[Transport] ❌ فشل الاتصال بـ {address}: {e}")
             return False
 
-    async def send_to(self, target_id: str, data: bytes) -> bool:
-        """إرسال bytes لعقدة مستهدفة"""
-        if self.transport_type == 'simulation':
-            if target_id in self.connections:
-                await self.connections[target_id].put(data)
-                return True
-            logger.warning(f"[Transport] Target '{target_id}' not in connections")
-            return False
+    # ─────────────────────────────────────────────
+    # الإرسال
+    # ─────────────────────────────────────────────
+    async def send_to(self, address: str, data: bytes) -> bool:
+        try:
+            if self.transport_type == 'websocket':
+                ws = self.connections.get(address)
+                if ws:
+                    await ws.send(data)
+                    return True
 
-        elif self.transport_type == 'websocket':
-            # await self._ws.send(data)
-            logger.warning("[Transport/ws] لم يُنفَّذ بعد")
-            return False
+            elif self.transport_type == 'simulation':
+                q = self._sim_queues.get(address)
+                if q:
+                    await q.put(data)
+                    return True
 
+        except Exception as e:
+            logger.error(f"[Transport] ❌ فشل الإرسال إلى {address}: {e}")
+            # محاولة إعادة الاتصال
+            self.connections.pop(address, None)
         return False
 
-    async def receive(self, source_id: str, timeout: float = 5.0) -> Optional[bytes]:
-        """استقبال bytes من عقدة"""
-        if source_id in self.connections:
+    # ─────────────────────────────────────────────
+    # الاستقبال (WebSocket)
+    # ─────────────────────────────────────────────
+    async def _ws_listener(self, address: str, ws):
+        """يستمع لرسائل واردة من عقدة معينة"""
+        try:
+            async for raw in ws:
+                if self.on_receive:
+                    await self.on_receive(address, raw if isinstance(raw, bytes) else raw.encode())
+        except Exception as e:
+            logger.warning(f"[Transport] انقطع الاتصال مع {address}: {e}")
+            self.connections.pop(address, None)
+
+    async def receive(self, address: str, timeout: float = 5.0) -> Optional[bytes]:
+        """استقبال في وضع simulation فقط"""
+        q = self._sim_queues.get(address)
+        if q:
             try:
-                data = await asyncio.wait_for(
-                    self.connections[source_id].get(),
-                    timeout=timeout
-                )
-                return data
+                return await asyncio.wait_for(q.get(), timeout=timeout)
             except asyncio.TimeoutError:
                 return None
         return None
 
-    def is_connected(self) -> bool:
-        return self._connected and len(self.connections) > 0
+    def is_connected(self, address: str = None) -> bool:
+        if address:
+            return address in self.connections
+        return len(self.connections) > 0
 
     async def disconnect(self, address: str):
-        """إغلاق الاتصال"""
-        if address in self.connections:
-            del self.connections[address]
-        if not self.connections:
-            self._connected = False
-        logger.info(f"[Transport] Disconnected from {address}")
+        ws = self.connections.pop(address, None)
+        if ws and self.transport_type == 'websocket':
+            await ws.close()
+        self._sim_queues.pop(address, None)
+        logger.info(f"[Transport] انقطع الاتصال مع {address}")
