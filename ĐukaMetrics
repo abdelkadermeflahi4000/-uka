@@ -1,0 +1,5 @@
+self.laser_wavelength = Gauge('duka_laser_wavelength_nm', ['node_id'])
+self.laser_power = Gauge('duka_laser_max_power', ['node_id'])
+self.laser_coherence = Gauge('duka_laser_coherence_time', ['node_id'])
+self.laser_stealth = Gauge('duka_laser_stealth_cutoff', ['node_id'])
+self.laser_violations = Counter('duka_laser_constitutional_violations_total', ['node_id'])
