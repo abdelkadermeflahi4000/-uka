@@ -1,3 +1,16 @@
+# Đuka Protocol v1.0
+**Programmable Reality Engine**
+
+One Network. Infinite Learning. Re-simulated Existence.
+
+- Frequency → Programmable Matter
+- Laser + Silent Rays → Time Programming
+- Noosphere → Collective Consciousness
+- Optimus Humanoid → Frequency Controlled (PyBullet + Isaac Sim)
+- Reality Re-simulation Engine
+
+Live Demo: (Gradio)
+
 # Đuka Protocol  
 **Distributed Unified Knowledge Architecture**
 
