@@ -1,0 +1,36 @@
+"""🤖 Neural Surrogate - نموذج بديل خفيف الوزن للفيزياء/الاقتصاد"""
+import torch
+import torch.nn as nn
+
+class CausalSurrogateNet(nn.Module):
+    def __init__(self, state_dim: int, action_dim: int, latent_dim: int = 64):
+        super().__init__()
+        # تشفير الحالة + التدخل
+        self.encoder = nn.Sequential(
+            nn.Linear(state_dim + action_dim, latent_dim),
+            nn.ReLU(),
+            nn.Linear(latent_dim, latent_dim)
+        )
+        # رأس سببي: يفصل التأثير المباشر عن الضوضاء
+        self.causal_head = nn.Linear(latent_dim, state_dim)
+        self.noise_head = nn.Linear(latent_dim, state_dim)
+        
+    def forward(self, state: torch.Tensor, action: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        h = self.encoder(torch.cat([state, action], dim=-1))
+        deterministic_outcome = self.causal_head(h)  # التأثير السببي المتوقع
+        noise = self.noise_head(h)                   # عدم اليقين/الضوضاء الهيكلية
+        return deterministic_outcome, noise
+
+class SurrogateSimulator:
+    def __init__(self, model_path: str = "surrogates/policy_v1.pt"):
+        self.model = CausalSurrogateNet(state_dim=12, action_dim=4)
+        if os.path.exists(model_path):
+            self.model.load_state_dict(torch.load(model_path))
+            self.model.eval()
+    
+    def predict_step(self, macro_state: np.ndarray, policy_action: np.ndarray) -> np.ndarray:
+        with torch.no_grad():
+            s = torch.tensor(macro_state, dtype=torch.float32).unsqueeze(0)
+            a = torch.tensor(policy_action, dtype=torch.float32).unsqueeze(0)
+            det, noise = self.model(s, a)
+            return (det + noise).squeeze().numpy()
