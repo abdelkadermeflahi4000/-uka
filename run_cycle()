@@ -1,0 +1,10 @@
+# بعد Reality Re-simulation
+if hasattr(self, 'optimus_bridge'):
+    self.optimus_bridge.apply_frequency_field(
+        env.frequency_field, 
+        self.noosphere.noosphere_field
+    )
+    
+    # Laser effect on physical body
+    for beam in env.laser_beams:
+        self.optimus_bridge.apply_laser_beam_effect(beam)
