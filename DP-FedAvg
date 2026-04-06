@@ -1,0 +1,36 @@
+"""🔐 Differential Privacy + Federated Aggregation"""
+import torch
+import numpy as np
+from typing import List, Dict
+
+class DifferentialPrivacyWrapper:
+    def __init__(self, noise_scale: float = 0.1, clipping_norm: float = 1.0):
+        self.noise_scale = noise_scale
+        self.clipping_norm = clipping_norm
+        self.privacy_budget_ε = 0.0  # يتراكم ديناميكياً
+        
+    def clip_and_add_noise(self, gradients: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+        """قص التدرجات + إضافة ضوضاء غوسية لحماية البيانات"""
+        clipped = {}
+        for key in gradients[0].keys():
+            param_grads = torch.stack([g[key] for g in gradients])
+            norms = torch.norm(param_grads.view(param_grads.size(0), -1), dim=1)
+            clip_factor = torch.clamp(self.clipping_norm / (norms + 1e-8), max=1.0)
+            clipped[key] = torch.mean(param_grads * clip_factor.unsqueeze(1), dim=0)
+            
+            noise = torch.randn_like(clipped[key]) * self.noise_scale
+            clipped[key] += noise
+            
+        self.privacy_budget_ε += (2 * self.noise_scale) / self.clipping_norm  # تقريب ريناي
+        return clipped
+
+class FederatedTrainer:
+    def __init__(self, dp_wrapper: DifferentialPrivacyWrapper):
+        self.dp = dp_wrapper
+        self.global_model = CausalSurrogateNet(state_dim=12, action_dim=4)
+        
+    def aggregate_round(self, client_updates: List[Dict[str, torch.Tensor]], weights: np.ndarray):
+        """تجميع آمن من العقد الطرفية"""
+        protected_gradients = self.dp.clip_and_add_noise(client_updates)
+        for name, param in self.global_model.named_parameters():
+            param.data += torch.tensor(protected_gradients[name]) * np.mean(weights)
