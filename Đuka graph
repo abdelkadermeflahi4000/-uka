@@ -1,0 +1,16 @@
+graph TB
+    Core[🧠 Đuka Core] --> Net[🌐 Đuka Net]
+    Core --> Sim[🎮 Đuka Sim]
+    Core --> Bio[🧬 Đuka Bio]
+    Core --> Robot[🤖 Đuka Robotics]
+    
+    Net <--> Sim
+    Net <--> Robot
+    Sim <--> Bio
+    Robot <--> Bio
+    
+    style Core fill:#6366f1,stroke:#fff,stroke-width:2px
+    style Net fill:#22c55e,stroke:#fff
+    style Sim fill:#f59e0b,stroke:#fff
+    style Bio fill:#ef4444,stroke:#fff
+    style Robot fill:#8b5cf6,stroke:#fff
