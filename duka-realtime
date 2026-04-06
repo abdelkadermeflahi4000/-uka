@@ -1,0 +1,14 @@
+duka-realtime/
+├── src/
+│   ├── realtime_pipeline.py      # الحلقة الرئيسية + مزامنة 30Hz
+│   ├── layers/
+│   │   ├── hierarchical_world.py # تجميع + سروجيت
+│   │   ├── constitutional_gate.py# حوكمة + Nudge + تدقيق
+│   │   └── secure_feedback.py    # DP-FedAsync + تحديث خلفية
+│   └── utils/
+│       └── realtime_sync.py      # منظم التوقيت + Fallback
+├── Dockerfile
+├── docker-compose.prod.yml
+├── tests/
+│   └── test_latency_budget.py
+└── requirements.txt
