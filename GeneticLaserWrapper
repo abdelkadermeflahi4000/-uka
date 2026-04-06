@@ -1,0 +1,51 @@
+# أضف هذا في src/laser_agent.py (داخل GeneticLaserWrapper.__init__ و step)
+
+def __init__(self, env, genome):
+    super().__init__(env)
+    self.genome = genome
+    self.mapper = GenomeLaserMapper()
+    self.config = self.mapper.map(genome.vector)
+    self.predictor = PredictiveOverlay(grid_size=env.unwrapped.grid_size)
+    self.pulse_counter = 0
+    self.violation_count = 0
+    self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(4,), dtype=np.float32)
+
+def step(self, action: np.ndarray):
+    dx, dy, angle, trigger = action
+    move_action = int(np.clip(dy + 2, 0, 4))
+    obs, reward, term, trunc, info = self.env.step(move_action)
+    
+    # 1. استخراج الحالة الحالية
+    env_unwrapped = self.env.unwrapped
+    fields = obs.reshape(env_unwrapped.grid_size, env_unwrapped.grid_size, 4)
+    freq, amp, time_f = fields[:, :, 0], fields[:, :, 2], fields[:, :, 3]
+    laser_cfg_vec = np.array([
+        self.config.wavelength_nm/1000, self.config.polarization_angle/180,
+        self.config.ellipticity, self.config.phase_offset/np.pi,
+        self.config.coherence_time/4, self.config.beam_waist/2.5,
+        self.config.divergence/0.15, self.config.pulse_duration/8,
+        self.config.duty_cycle, self.config.max_power,
+        self.config.phase_lock_strength, self.config.stealth_cutoff
+    ], dtype=np.float32)
+    
+    # 2. التنبؤ بـ t+5
+    pred_freq, pred_time = self.predictor.predict(
+        freq, amp, time_f, laser_cfg_vec, env_unwrapped.agent_pos.astype(np.float32)
+    )
+    
+    # 3. تصحيح الانحراف الذاتي
+    if self.predictor.prediction_cache is not None:
+        pred_f_cache, pred_t_cache = self.predictor.prediction_cache
+        f_err, t_err = self.predictor.record_error(freq, time_f)
+        reward -= (f_err * 0.5 + t_err * 0.3)  # عقوبة الانحراف التنبؤي
+        
+    # 4. حقن التنبؤ في الملاحظة (للتخطيط المستقبلي)
+    pred_obs = np.concatenate([
+        pred_freq.flatten(), pred_time.flatten(), laser_cfg_vec, env_unwrapped.agent_pos.astype(np.float32)/12
+    ]).astype(np.float32)
+    info["pred_confidence"] = self.predictor.get_prediction_confidence()
+    info["pred_freq"] = pred_freq
+    info["pred_time"] = pred_time
+    
+    # ... (باقي منطق الليزر الدستوري هنا) ...
+    return obs, float(reward), term, trunc, info
