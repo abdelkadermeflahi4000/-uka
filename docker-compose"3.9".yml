@@ -1,0 +1,68 @@
+version: "3.9"
+services:
+  nats:
+    image: nats:2.10-alpine
+    ports: ["4222:4222", "8222:8222"]
+    command: ["-js", "-m", "8222"]
+    networks: [đuka_net]
+    restart: unless-stopped
+
+  đuka-core:
+    build: .
+    depends_on: [nats]
+    environment:
+      - NATS_URL=nats://nats:4222
+      - LOG_LEVEL=info
+      - METRICS_PORT=9090
+      - REALITY_FIREWALL_MODE=sim
+    ports: ["8000:8000", "9090:9090"]
+    networks: [đuka_net]
+    volumes:
+      - ./configs:/app/configs:ro
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom_data:/prometheus
+    networks: [đuka_net]
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.0
+    ports: ["3100:3100"]
+    command: -config.file=/etc/loki/local-config.yaml
+    networks: [đuka_net]
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on: [loki]
+    networks: [đuka_net]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports: ["3000:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on: [prometheus, loki]
+    networks: [đuka_net]
+    restart: unless-stopped
+
+networks:
+  đuka_net:
+    driver: bridge
+
+volumes:
+  prom_data:
+  grafana_data:
