@@ -1,5 +1,6 @@
 src/semantic/
-├── adapter.py               # محوّل بيانات المستشعرات/ROS2 → Prompt منظم
-├── inference_engine.py      # محرك LLM غير متزامن (vLLM / llama-cpp / Transformers)
-├── constitutional_gate.py   # بوابة دستورية لمنع الهلوسة + تنسيق موحد
-└── fastapi_service.py       # واجهة HTTP/gRPC للربط مع ROS2 و ĐukaNetwork
+├── prompt_engine.py          # مولّد القوالب الديناميكية + حقن القواعد
+├── constitutional_rules.yaml # القواعد الدستورية + العتبات
+├── eval_pipeline.py          # خط التقييم (هلوسة، دقة، امتثال، زمن)
+├── deployment_gate.py        # بوابة الاعتماد/الحظر قبل النشر
+└── grafana/eval_dashboard.json # لوحة مراقبة نتائج التقييم
