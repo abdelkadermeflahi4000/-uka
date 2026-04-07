@@ -1,55 +1,21 @@
-# أضف هذا في src/laser_agent.py (استبدل الـ Wrapper القديم)
-
-class GeneticLaserWrapper(Wrapper):
-    """يحول مخرجات PPO إلى ليزر فيزيائي مُوجه جينياً مع قناع دستوري"""
-    def __init__(self, env, genome):
-        super().__init__(env)
-        self.genome = genome
-        self.mapper = GenomeLaserMapper()
-        self.config = self.mapper.map(genome.vector)
-        self.pulse_counter = 0
-        self.violation_count = 0
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(4,), dtype=np.float32)  # [dx, dy, angle, trigger]
-
-    def reset(self, **kwargs):
-        self.pulse_counter = 0
-        self.violation_count = 0
-        return self.env.reset(**kwargs)
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
-        dx, dy, angle, trigger = action
-        move_action = int(np.clip(dy + 2, 0, 4))  # تحويل بسيط للحركة
-        obs, reward, term, trunc, info = self.env.step(move_action)
-
-        # تحكم زمني بالنبضة (Pulse Gating)
-        self.pulse_counter += 1
-        pulse_active = (self.pulse_counter % int(1/self.config.duty_cycle)) < self.config.pulse_duration
-
-        if trigger > 0.0 and pulse_active:
-            # تطبيق معاملات جينية على التردد والسعة
-            base_freq = np.sin(angle * np.pi)  # محاكاة تردد اتجاهي
-            freq = self.config.phase_offset + base_freq * self.config.phase_lock_strength
-            amp = self.config.max_power * (1.0 - self.config.divergence * 2.0)
-
-            # فحص دستوري
-            compliant, reason = self.mapper.validate_constitutional(self.config)
-            if not compliant:
-                self.violation_count += 1
-                reward -= 2.0
-                info["violation"] = reason
-            else:
-                x, y = self.env.unwrapped.agent_pos
-                dir_vec = (np.cos(angle * np.pi), np.sin(angle * np.pi))
-                self.env.unwrapped.add_laser_beam(
-                    (x, y), dir_vec, float(freq), float(amp), is_silent=True
-                )
-                reward += 1.5  # مكافأة التوجيه الدقيق
-                
-        # تطبيق قناع إخفاء على الملاحظة
-        obs = obs.copy()
-        freq_view = obs.reshape(self.env.unwrapped.grid_size, self.env.unwrapped.grid_size, 4)[:, :, 0]
-        masked_freq = self.mapper.apply_stealth_mask(freq_view, self.config.stealth_cutoff)
-        obs = obs.copy()
-        obs[:len(masked_freq.flatten())] = masked_freq.flatten()
-
-        return obs, float(reward), term, trunc, info
+        # === الربط الجديد مع Noosphere ===
+        if "noosphere" in self.env.unwrapped.__dict__:
+            # إرسال تأثير الليزر إلى Noosphere
+            beam_info = {
+                "start": (x, y),
+                "dir": dir_vec,
+                "frequency": float(freq),
+                "amplitude": float(amp)
+            }
+            self.env.unwrapped.noosphere.process_laser_impact([beam_info])
+            
+            # الحصول على تعديل من Noosphere
+            mod = self.env.unwrapped.noosphere.get_laser_modulation(int(x), int(y))
+            
+            # تحسين المكافأة والدقة
+            reward += mod["precision_bonus"] * 2.5
+            reward += mod["stealth_bonus"] * 1.8
+            
+            # إضافة معلومات للـ info (للـ visualization والـ logging)
+            info["noosphere_coherence"] = mod["coherence"]
+            info["laser_precision_bonus"] = mod["precision_bonus"]
