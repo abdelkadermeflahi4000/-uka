@@ -50,7 +50,7 @@ class ĐukaRealTimePipeline:
         
         #  تهيئة الطبقات المدمجة
         self.world_model = HierarchicalSurrogateModel(device="cuda" if torch.cuda.is_available() else "cpu")
-        self.decision_gate = ConstitutionalDecisionGuard(config.node_id)
+        self.decision_gate = ConstitutionalDecisionGate(config.node_id)
         self.feedback_loop = SecureFeedbackLoop(dp_sync_interval=config.dp_sync_interval_cycles)
         
         #  مراقبة
