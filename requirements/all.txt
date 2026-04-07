@@ -1,0 +1,6 @@
+-r core.txt
+-r sim.txt
+-r robotics.txt
+-r dev.txt
+gradio>=4.10.0
+python-dotenv>=1.0.0
