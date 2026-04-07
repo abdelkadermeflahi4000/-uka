@@ -1,0 +1,5 @@
+src/semantic/
+├── adapter.py               # محوّل بيانات المستشعرات/ROS2 → Prompt منظم
+├── inference_engine.py      # محرك LLM غير متزامن (vLLM / llama-cpp / Transformers)
+├── constitutional_gate.py   # بوابة دستورية لمنع الهلوسة + تنسيق موحد
+└── fastapi_service.py       # واجهة HTTP/gRPC للربط مع ROS2 و ĐukaNetwork
