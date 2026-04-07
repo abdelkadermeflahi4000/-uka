@@ -1,0 +1,28 @@
+đuka-protocol/
+├── src/
+│   ├── __init__.py
+│   ├── core/           # إعدادات، logging هيكلي، utilities، DP-FedAvg، AuditFirstLogger
+│   ├── ai/             # HierarchicalWorldModel, CausalSurrogate, RL Agents
+│   ├── safety/         # ConstitutionalGuardrail, RealityFirewall, PolicySandbox, NudgeIntervention
+│   ├── network/        # ⬅️ دمج كل duka_mesh/network/protocol هنا + MessageBus موحد
+│   ├── robotics/       # ROS2 bridges, URDF loaders, ActuatorWrappers
+│   └── sim/            # PyBullet, Frequency Grid, Isaac/Unity bridges, Programmable Reality
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── performance/
+├── configs/            # YAML/JSON (policies, network, safety thresholds, model paths)
+├── scripts/            # CLI tools, migration helpers, dev utilities
+├── monitoring/         # prometheus.yml, loki-config.yaml, grafana/provisioning/
+├── requirements/
+│   ├── core.txt
+│   ├── sim.txt
+│   ├── robotics.txt
+│   ├── dev.txt
+│   └── all.txt
+├── pyproject.toml      # التغليف الحديث (بديل setup.py)
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
