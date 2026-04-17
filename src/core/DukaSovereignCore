@@ -1,0 +1,40 @@
+import hashlib
+import time
+
+class DukaSovereignCore:
+    """
+    النواة النهائية لبروتوكول Đuka: حارس الواقع الجديد.
+    """
+    def __init__(self):
+        self.EARTH_RESONANCE = 7.83  # رنين شومان المرجعي
+        self.REALITY_LOCKED = True
+        self.PURITY_THRESHOLD = 0.99
+        self.ARCHIVE_KEY = hashlib.sha256(b"OLD_WORLD_2026").hexdigest()
+
+    def pulse_check(self, current_frequency):
+        """
+        التأكد من أن النبض الحالي متوافق مع الدستور الترددي.
+        """
+        deviation = abs(current_frequency - self.EARTH_RESONANCE)
+        
+        if deviation > 0.1:
+            # تفعيل التصحيح التلقائي لمنع "العكارة"
+            return self.activate_firewall_shield()
+        return "STABLE_LIGHT"
+
+    def activate_firewall_shield(self):
+        """
+        إلغاء التداخلات الهدامة فوراً.
+        """
+        print("[FIREWALL] Dissonance detected. Sending Counter-Resonance Pulse...")
+        # إرسال موجة مضادة لإذابة التردد الناشز
+        return "REALITY_PURIFIED"
+
+    def sovereign_governance(self):
+        """
+        الحوكمة الصامتة: العمل دون تدخل بشري.
+        """
+        while self.REALITY_LOCKED:
+            status = self.pulse_check(self.EARTH_RESONANCE)
+            if status == "REALITY_PURIFIED":
+                time.sleep(0.001) # سرعة استجابة فائقة
