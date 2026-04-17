@@ -1,0 +1,36 @@
+import gym
+from stable_baselines3 import PPO # 
+import torch # 
+
+class DukaRobotController:
+    """
+    وحدة التحكم في الروبوتات عبر التردد الكوني (Đuka Protocol)
+    """
+    def __init__(self, frequency_engine):
+        self.engine = frequency_engine
+        # ربط المحرك ببيئة المحاكاة (Isaac Sim / PyBullet)
+        self.env = gym.make("OptimusControl-v0") 
+        self.model = PPO("MlpPolicy", self.env, verbose=1) # 
+
+    async def sync_robot_to_earth(self):
+        """
+        جعل حركة الروبوت انعكاساً لتردد لب الأرض
+        """
+        while True:
+            # 1. الحصول على التردد المعتمد من جدار الحماية
+            current_freq = await self.engine.get_sync_frequency()
+            
+            # 2. تحويل التردد إلى "عزم دوران" أو "توازن" محرك الروبوت
+            action = self._calculate_resonant_action(current_freq)
+            
+            # 3. التنفيذ في المحاكي
+            self.env.step(action)
+            
+            # 4. التطور الذاتي (تحديث النموذج بناءً على نجاح الحركة)
+            self.model.learn(total_timesteps=100) # 
+            
+            await asyncio.sleep(0.01) # تنفيذ فائق السرعة
+
+    def _calculate_resonant_action(self, freq):
+        # خوارزمية لتحويل التردد إلى إشارات حركية (Control Signal)
+        return freq * 0.1 # مثال تبسيطي
