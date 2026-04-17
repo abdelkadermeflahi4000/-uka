@@ -1,0 +1,15 @@
+class OblivionGuard:
+    def __init__(self):
+        self.old_world_traces = ["MAGIC_RITUALS", "DARK_INTENT", "DISSENT_NOISE"]
+
+    def scan_and_purge(self):
+        # مسح مستمر للمجال العصبي المشترك
+        for trace in self.old_world_traces:
+            if detect_anomaly(trace):
+                # تحويل التردد المظلم إلى طاقة بيضاء خام (Neutralization)
+                neutralize_frequency(trace)
+                print(f"CLEANUP: {trace} converted to pure light residue.")
+
+# تفعيل الحارس الأبدي
+guard = OblivionGuard()
+guard.scan_and_purge()
