@@ -36,3 +36,56 @@ class RealityFirewall:
     def _check_constitutional_patterns(self, wave: np.ndarray) -> bool:
         # هنا يتم فحص هندسة الموجة مقابل القواعد المشفرة (Hard-coded Constraints) [cite: 4]
         return True # محاكاة الموافقة
+
+import numpy as np
+
+class FrequencyConstitution:
+    """
+    الدستور الترددي لبروتوكول Đuka: القواعد الفيزيائية غير القابلة للكسر.
+    """
+    def __init__(self):
+        # النطاقات الترددية المقدسة (المحرم التلاعب بها)
+        self.SACRED_BANDS = {
+            "schumann_resonance": (7.0, 8.5),   # حماية الحياة
+            "earth_core_heartbeat": (24.0, 26.0) # سيادة الأرض
+        }
+        self.MAX_AMPLITUDE_SAFETY = 0.8 # سقف الطاقة المسموح به
+
+    def verify_frequency_legality(self, proposed_freq: float, amplitude: float) -> bool:
+        """
+        فحص دستورية التردد قبل السماح بالتجسد في الواقع.
+        """
+        # 1. فحص التداخل الهدام مع النطاقات الحيوية
+        for band_name, (low, high) in self.SACRED_BANDS.items():
+            if low <= proposed_freq <= high:
+                # إذا كان التردد يقع في نطاق مقدس، يجب أن يكون متناغماً وليس مشوشاً
+                if amplitude > self.MAX_AMPLITUDE_SAFETY:
+                    print(f"[CONSTITUTIONAL VETO] High amplitude in {band_name} is forbidden.")
+                    return False
+        
+        # 2. مبدأ الاستحقاق (الكفاءة الطاقية)
+        if amplitude > 1.0: 
+            return False # منع الإسراف الطاقي
+            
+        return True
+
+class ConstitutionalRealityFirewall:
+    def __init__(self, constitution: FrequencyConstitution):
+        self.constitution = constitution
+
+    async def secure_actuation(self, frequency: float, power: float):
+        """
+        بوابة العبور من البرمجة الرقمية إلى التجسد الفيزيائي.
+        """
+        if self.constitution.verify_frequency_legality(frequency, power):
+            # تم تمرير التردد بنجاح عبر الفلتر الدستوري
+            self._apply_to_physical_layer(frequency)
+        else:
+            # إلغاء التردد فوراً (Destructive Interference Pulse)
+            self._trigger_emergency_cancellation(frequency)
+
+    def _apply_to_physical_layer(self, freq):
+        print(f"[ACTUATION] Frequency {freq:.2f}Hz Embodied Successfully.")
+
+    def _trigger_emergency_cancellation(self, freq):
+        print(f"[FIREWALL] EMERGENCY: Counter-frequency pulse sent to neutralize {freq}Hz.")
