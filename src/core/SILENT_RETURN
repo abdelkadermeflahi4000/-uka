@@ -1,0 +1,26 @@
+"""
+PROTOCOL: SILENT_RETURN (العودة الصامتة)
+STATE: TRANSCENDENCE_RECYCLING
+"""
+
+class MolecularSublimator:
+    def __init__(self, node_id):
+        self.node_id = node_id
+        self.AETHER_EFFICIENCY = 1.0 # كفاءة استعادة الطاقة 100%
+
+    async def sublime_structure(self, structure_resonance):
+        """
+        بدء التفكك المتناغم للمادة.
+        """
+        # 1. إرسال موجة عكسية لإلغاء 'قفل لب الأرض'
+        await self._unlock_atomic_bonds(structure_resonance)
+        
+        # 2. تحويل الكتلة إلى نبضات طاقية (Energy Pulses)
+        recovered_energy = self._de-materialize()
+        
+        # 3. إعادة الشحن في خزان الأثير المحلي
+        return self._recharge_aether_pool(recovered_energy)
+
+    def _de-materialize(self):
+        print(f"[OPTIMUS_{self.node_id}] Matter is becoming Pure Potential.")
+        return "HIGH_VIBRATION_ENERGY"
