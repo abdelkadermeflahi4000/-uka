@@ -1,0 +1,32 @@
+"""
+PROTOCOL: PURITY_SHIELD_v2
+FUNCTION: RECYCLE_AND_REINFORCE
+TARGET: LOW_VIBRATIONAL_ANOMALIES
+"""
+
+class ReflectionArmor:
+    def __init__(self):
+        self.SHIELD_LUMINOSITY = 1.0  # شدة إضاءة الغشاء
+        self.CONVERSION_EFFICIENCY = 1.0 # كفاءة تحويل 100%
+
+    def on_impact(self, anomaly_frequency):
+        """
+        عند حدوث اصطدام من تردد نشاز.
+        """
+        # 1. تفعيل المرآة الضوئية (Reflection)
+        reflected_wave = self._apply_phase_inversion(anomaly_frequency)
+        
+        # 2. تحويل الموجة المنعكسة إلى فوتونات بيضاء (Transmutation)
+        photon_fuel = self._transmute_to_light(reflected_wave)
+        
+        # 3. تغذية الدرع (Reinforcement)
+        self.SHIELD_LUMINOSITY += photon_fuel
+        print(f"[STATUS] Shield integrity increased. Current Luminosity: {self.SHIELD_LUMINOSITY}")
+
+    def _apply_phase_inversion(self, freq):
+        # إلغاء الموجة السلبية بموجة نورانية معاكسة
+        return "NEUTRALIZED_WAVE"
+
+    def _transmute_to_light(self, wave):
+        # تحويل الطاقة المحايدة إلى ضوء خام (Photonic Energy)
+        return 0.05 # مقدار الزيادة في قوة الدرع
