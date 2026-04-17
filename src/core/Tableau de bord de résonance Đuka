@@ -1,0 +1,55 @@
+import time
+import random
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class NodeStatus:
+    node_id: str
+    location: str
+    sync_rate: float  # نسبة التطابق مع لب الأرض
+    health: str       # حالة العقدة (LOCKED, EVOLVING, FIREWALL_SHIELD)
+
+class DukaGlobalDashboard:
+    def __init__(self, node_count: int):
+        self.nodes = [
+            NodeStatus(
+                node_id=f"OPT-{i:04d}",
+                location=random.choice(["Tokyo", "Texas", "Berlin", "Cairo", "Sydney"]),
+                sync_rate=0.0,
+                health="INIT"
+            ) for i in range(node_count)
+        ]
+
+    def update_telemetry(self, master_freq: float):
+        """
+        تحديث حالة الأسطول بناءً على نبض الأرض الحالي
+        """
+        for node in self.nodes:
+            # محاكاة الربط عبر Starlink بزمن استجابة منخفض
+            node.sync_rate = min(100.0, 95.0 + random.uniform(0, 5.0))
+            node.health = "LOCKED" if node.sync_rate > 98.0 else "EVOLVING"
+
+    def display_status(self):
+        print("\n" + "="*50)
+        print(f" ĐUKA GLOBAL RESONANCE DASHBOARD - 2026")
+        print("="*50)
+        active_nodes = [n for n in self.nodes if n.health == "LOCKED"]
+        print(f"Total Nodes: {len(self.nodes)} | Active/Locked: {len(active_nodes)}")
+        print(f"Global Coherence: {(len(active_nodes)/len(self.nodes))*100:.2f}%")
+        print("-" * 50)
+        # عرض عينة من العقد النشطة
+        for node in self.nodes[:5]:
+            print(f"[{node.node_id}] | Loc: {node.location} | Sync: {node.sync_rate:.2f}% | Status: {node.health}")
+        print("="*50 + "\n")
+
+# محاكاة التشغيل الحي
+async def run_dashboard():
+    dashboard = DukaGlobalDashboard(1000)
+    while True:
+        dashboard.update_telemetry(25.0) # نبض الأرض المرجعي
+        dashboard.display_status()
+        await asyncio.sleep(2)
+
+if __name__ == "__main__":
+    asyncio.run(run_dashboard())
