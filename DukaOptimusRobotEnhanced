@@ -1,0 +1,5 @@
+# داخل __init__
+self.noosphere = NoosphereField(n_agents=50)
+
+# داخل الدورة
+await self.noosphere.share_with_bridge()   # في مهمة منفصلة
