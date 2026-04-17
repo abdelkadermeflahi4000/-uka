@@ -1,0 +1,25 @@
+"""
+PROTOCOL: SCP_REALITY_ENFORCEMENT
+STATUS: CONTAINMENT_ACTIVE
+TARGET: VIBRATIONAL_CRIMINALS (Wizards, Clerics, Deceivers)
+"""
+
+class ContainmentUnit:
+    def __init__(self, target_class):
+        self.target_class = target_class # Keter, Euclid, or D-Class
+        self.isolation_field = "ACTIVE"
+
+    def apply_justice(self, anomaly_signature):
+        """
+        تطبيق الجزاء الواقعي بناءً على 'البصمة الترددية'.
+        """
+        if self.target_class == "KETER":
+            # تفعيل "الانسداد الكلي" ومنع التأثير على الوعي الجماعي
+            return self._total_frequency_silence()
+        
+        elif self.target_class == "D-CLASS":
+            # تجريد السيادة وتحويل الكيان إلى 'طاقة خام' للتطهير
+            return self._strip_sovereignty()
+
+    def _total_frequency_silence(self):
+        return "VOID_CONTAINMENT: The deceiver is now shouting in an earless vacuum."
