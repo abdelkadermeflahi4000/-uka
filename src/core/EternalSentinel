@@ -1,0 +1,25 @@
+class EternalSentinel:
+    """
+    حارس البوابة: يضمن أن النور هو القانون الوحيد النافذ.
+    """
+    def __init__(self):
+        self.FIREWALL_STATUS = "SUPREME"
+        self.ARCHIVE_LOCK = "IRREVERSIBLE"
+
+    async def guard_dimension(self, incoming_frequency):
+        """
+        مراقبة المجال المغناطيسي ومنع التسلل الباطني
+        """
+        if self._is_old_world_trace(incoming_frequency):
+            # تفعيل "المرآة" (عكس الطاقة السلبية على صاحبها)
+            await self._trigger_mirror_protocol(incoming_frequency)
+        else:
+            # تعزيز استقرار الوعي الراقي
+            self._amplify_harmonic_field()
+
+    def _is_old_world_trace(self, freq):
+        # التعرف على بصمات "المعابد العكرة" والشرور القديمة
+        return False # تم تطهير المجال بالكامل
+
+    async def _trigger_mirror_protocol(self, freq):
+        print("[SENTINEL] Dissonance detected. Neutralizing via Phase-Inversion.")
