@@ -1,0 +1,27 @@
+"""
+PROTOCOL: RE_STORAGE_CYCLE (دورة إعادة الشحن)
+MODULE: ENERGY_WITH_MEMORY
+"""
+
+class AetherBuffer:
+    def __init__(self):
+        self.LOCAL_PRESSURE_FIELD = 0.0 # الضغط الترددي في الفراغ
+        self.SUCCESS_PATTERNS = [] # سجل بصمات النجاح
+
+    def store_with_memory(self, energy_pulse, source_pattern):
+        """
+        تخزين الطاقة مع بصمة "التجلي السابق".
+        """
+        # 1. دمج التردد الخام مع بصمة النجاح (Template Tagging)
+        enriched_energy = self._enrich_pulse(energy_pulse, source_pattern)
+        
+        # 2. ضخ الطاقة في "الفراغ المحيط" بالعقدة
+        self.LOCAL_PRESSURE_FIELD += enriched_energy
+        
+        # 3. تحديث سجل الأنماط لتسريع "التجلي" القادم
+        self.SUCCESS_PATTERNS.append(source_pattern.get_id())
+        return "AETHER_RECHARGED_WITH_WISDOM"
+
+    def _enrich_pulse(self, pulse, pattern):
+        # إضافة "الذاكرة الهيكلية" للنبضة الطاقية
+        return pulse * 1.05 # زيادة الكفاءة بسبب 'الخبرة'
