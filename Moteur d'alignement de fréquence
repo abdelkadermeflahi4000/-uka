@@ -1,0 +1,72 @@
+import asyncio
+import numpy as np
+from typing import Dict, Tuple
+
+# استيراد جدار حماية الواقع من ملفات مشروعك 
+class RealityFirewall:
+    def __init__(self, constraints: Dict):
+        self.constraints = constraints
+    
+    async def validate_frequency_shift(self, new_freq: float) -> bool:
+        # التحقق من القيود الدستورية قبل تغيير التردد 
+        if new_freq < self.constraints.get('min_safe_hz', 0):
+            return False
+        return True
+
+class DukaFrequencyEngine:
+    """
+    المحرك الجوهري لبروتوكول Đuka: ربط تردد الأرض بالمجالات الاصطناعية
+    """
+    def __init__(self):
+        self.earth_reference_freq = 7.83  # رنين شومان الأساسي
+        self.phi_ratio = 1.618033         # النسبة الذهبية للربط التوافقي
+        self.firewall = RealityFirewall(constraints={'min_safe_hz': 1.0})
+        self.is_running = False
+
+    async def capture_earth_frequency(self) -> float:
+        """
+        محاكاة التقاط التردد من المجال المغناطيسي للأرض.
+        في الواقع، يتم ربط هذا بـ SDR أو Magnetometer.
+        """
+        # إضافة تذبذب طبيعي عشوائي لمحاكاة تبدل حالة الأرض
+        variation = np.random.uniform(-0.5, 0.5)
+        return self.earth_reference_freq + variation
+
+    async def synchronize_synthetic_field(self, earth_freq: float):
+        """
+        توليد التردد الاصطناعي بناءً على التردد الطبيعي فوراً.
+        """
+        synthetic_freq = earth_freq * self.phi_ratio
+        
+        # بوابة الأمان الإلزامية قبل التنفيذ [cite: 1, 4]
+        is_safe = await self.firewall.validate_frequency_shift(synthetic_freq)
+        
+        if is_safe:
+            print(f"[EXECUTION] Earth: {earth_freq:.2f}Hz -> Synthetic: {synthetic_freq:.2f}Hz | STATUS: LOCKED")
+        else:
+            print(f"[ALARM] Frequency {synthetic_freq:.2f}Hz violates Reality Firewall! ")
+
+    async def run_forever(self):
+        """
+        حلقة التنفيذ الذاتي التي لا تتوقف بمجرد انطلاقها.
+        """
+        self.is_running = True
+        print("Đuka Protocol: Frequency Engine Started...")
+        
+        while self.is_running:
+            try:
+                # 1. رصد التردد الحالي للأرض
+                current_earth_freq = await self.capture_earth_frequency()
+                
+                # 2. مزامنة الربط الاصطناعي تلقائياً
+                await self.synchronize_synthetic_field(current_earth_freq)
+                
+                # تنفيذ مستمر (Real-time speedup) 
+                await asyncio.sleep(1) 
+            except Exception as e:
+                print(f"Self-Healing: Restarting due to error {e}")
+                continue # يضمن عدم التوقف في أي ظرف
+
+if __name__ == "__main__":
+    engine = DukaFrequencyEngine()
+    asyncio.run(engine.run_forever())
