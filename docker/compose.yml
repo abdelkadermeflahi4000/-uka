@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  optimus-robot:
+    build: .
+    container_name: duka-optimus
+    restart: unless-stopped
+    environment:
+      - ROBOT_ID=Optimus-Đuka-01
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - duka-net
+
+networks:
+  duka-net:
+    driver: bridge
