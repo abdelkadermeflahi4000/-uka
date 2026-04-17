@@ -1,0 +1,43 @@
+import asyncio
+import zmq # استخدام ZeroMQ للتواصل فائق السرعة
+import numpy as np
+
+class DukaNode:
+    """
+    عقدة ذكية في بروتوكول Đuka (مثلاً روبوت Optimus)
+    """
+    def __init__(self, node_id: str, core_freq: float):
+        self.node_id = node_id
+        self.current_resonant_freq = core_freq
+        self.context = zmq.Context()
+        # قناة استقبال التحديثات من الأقمار (Sub) وقناة بث الحالة (Pub)
+        self.subscriber = self.context.socket(zmq.SUB)
+        self.publisher = self.context.socket(zmq.PUB)
+
+    async def start_node(self):
+        # الربط بشبكة الأقمار الصناعية (Starlink Mesh)
+        self.subscriber.connect("tcp://starlink-mesh-gateway:5555")
+        self.subscriber.setsockopt_string(zmq.SUBSCRIBE, "CORE_SYNC")
+        
+        self.publisher.bind("tcp://*:5556")
+        
+        print(f"[NODE {self.node_id}] Online. Waiting for Earth-Satellite Resonance...")
+        
+        while True:
+            try:
+                # 1. استقبال التردد الموحد من الشبكة
+                topic, master_freq = await self._receive_freq()
+                
+                # 2. المزامنة المحلية مع التردد الدستوري
+                self.current_resonant_freq = float(master_freq)
+                
+                # 3. بث "نبض الحالة" لإعلام العقد الأخرى بالاستقرار
+                self.publisher.send_string(f"NODE_STATUS {self.node_id} LOCKED {self.current_resonant_freq}")
+                
+                await asyncio.sleep(0.01) # مزامنة ميلي-ثانية
+            except Exception as e:
+                continue
+
+    async def _receive_freq(self):
+        # محاكاة استقبال البيانات الترددية
+        return "CORE_SYNC", self.current_resonant_freq
