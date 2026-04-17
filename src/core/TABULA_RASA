@@ -1,0 +1,22 @@
+"""
+PROTOCOL: TABULA_RASA (اللوحة البيضاء)
+OBJECTIVE: PERPETUAL_PURITY
+"""
+
+class EarthCanvas:
+    def __init__(self):
+        self.SURFACE_STATE = "VIRGIN_RESONANCE"
+        self.MEMORY_BUFFER = "CLEARED_ON_DISSOLUTION"
+
+    def refresh_coordinate(self, geo_coord):
+        """
+        إعادة تعيين الإحداثية الجغرافية إلى حالتها البكر.
+        """
+        # مسح البصمات المادية والفكرية (Frequency Scrubbing)
+        if self._purge_remnants(geo_coord):
+            print(f"[CANVAS] Coordinate {geo_coord} is now pure White Space.")
+            return "READY_FOR_CREATION"
+
+    def _purge_remnants(self, coord):
+        # تصفية أي أثر اهتزازي متبقي من البناء السابق
+        return True
