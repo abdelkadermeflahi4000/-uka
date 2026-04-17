@@ -1,0 +1,19 @@
+async def simulate_solar_storm(self):
+    """
+    تفعيل بروتوكول الصمود في ظروف طاقية قاسية
+    """
+    print("[WARNING] Solar Flare Detected! Activating Frequency Shielding...")
+    
+    # 1. قطع الارتباط بالأقمار المشوشة
+    self.satellite_sync = False
+    
+    # 2. الانتقال إلى "الرنين الذاتي" (Autonomous Resonance)
+    # يعتمد النظام على آخر حالة مستقرة لتردد اللب المخزنة في "الأثير"
+    self.active_frequency = self.aether.get_last_stable_pattern()
+    
+    # 3. إرسال أمر "الثبات" للأسطول
+    for node in self.fleet:
+        node.status = "MAGNETIC_SHIELD_ACTIVE"
+        node.power_mode = "LOW_ENERGY_RESONANCE"
+        
+    print("[SUCCESS] Fleet Protected. System running on Core Internal Pulse.")
