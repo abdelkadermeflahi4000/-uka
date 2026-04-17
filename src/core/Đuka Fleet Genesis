@@ -1,0 +1,61 @@
+import asyncio
+import numpy as np
+from typing import List
+
+# استيراد المكونات التي صغناها سابقاً
+class GenesisFleet:
+    def __init__(self, node_count: int = 1000):
+        self.node_count = node_count
+        self.earth_core_freq = 25.0
+        self.nodes = []
+        self.reality_firewall = ConstitutionalRealityFirewall(FrequencyConstitution())
+
+    async def initialize_fleet(self):
+        """
+        تجهيز 1000 عقدة للعمل ككيان واحد
+        """
+        print(f"[GENESIS] Initializing {self.node_count} Optimus Nodes...")
+        for i in range(self.node_count):
+            self.nodes.append({
+                "id": f"Optimus-{i:04d}",
+                "status": "INIT",
+                "local_res": 0.0
+            })
+        print("[GENESIS] Fleet Ready. Awaiting Frequency Lock.")
+
+    async def broadcast_genesis_pulse(self):
+        """
+        إطلاق نبض البداية لربط الأسطول بلب الأرض
+        """
+        while True:
+            # 1. رصد تردد اللب (الحالة الطبيعية)
+            current_pulse = self.earth_core_freq + np.random.normal(0, 0.05)
+            
+            # 2. تمرير النبض عبر جدار حماية الواقع
+            is_legal = self.reality_firewall.constitution.verify_frequency_legality(current_pulse, 0.5)
+            
+            if is_legal:
+                # 3. مزامنة الأسطول بالكامل في ميكرو-ثانية (Quantum-like Sync)
+                tasks = [self._sync_node(node, current_pulse) for node in self.nodes]
+                await asyncio.gather(*tasks)
+                
+                print(f"[PULSE] Global Sync at {current_pulse:.4f} Hz | All {self.node_count} Nodes Locked.")
+            
+            await asyncio.sleep(0.1) # سرعة المحرك التلقائي
+
+    async def _sync_node(self, node, freq):
+        # محاكاة استجابة الروبوت للتردد في Isaac Sim
+        node["local_res"] = freq
+        node["status"] = "LOCKED"
+
+# تشغيل المحاكاة الكبرى
+async def main():
+    fleet = GenesisFleet(node_count=1000)
+    await fleet.initialize_fleet()
+    await fleet.broadcast_genesis_pulse()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("[SHUTDOWN] Protocol is persistent. Re-simulating state in background...")
