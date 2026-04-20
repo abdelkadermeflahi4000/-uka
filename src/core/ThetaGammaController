@@ -1,0 +1,27 @@
+class ThetaGammaController:
+    def __init__(self, theta_hz=6, gamma_hz=40, noise=0.02):
+        self.theta_hz = theta_hz
+        self.gamma_hz = gamma_hz
+        self.noise = noise
+
+    def generate(self, t, salience=1.0):
+        # slow theta rhythm
+        theta = np.sin(2 * np.pi * self.theta_hz * t)
+
+        # fast gamma rhythm
+        gamma = np.sin(2 * np.pi * self.gamma_hz * t)
+
+        # phase-amplitude coupling
+        envelope = (theta + 1) / 2
+
+        coupled = salience * envelope * gamma
+
+        # biological noise
+        coupled += np.random.normal(0, self.noise, len(t))
+
+        return {
+            "theta": theta,
+            "gamma": gamma,
+            "coupled": coupled,
+            "envelope": envelope
+        }
